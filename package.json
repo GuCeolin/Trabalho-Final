@@ -1,0 +1,36 @@
+{
+  "name": "pecas-automotivas-api",
+  "version": "1.0.0",
+  "description": "API REST Serverless para gerenciamento de peças automotivas - Trabalho Universitário",
+  "main": "handler.py",
+  "scripts": {
+    "setup": "npm install && pip install -r requirements.txt",
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "deploy": "serverless deploy --stage local --verbose",
+    "remove": "serverless remove --stage local",
+    "info": "serverless info --stage local",
+    "logs": "serverless logs -f createItem --stage local --tail",
+    "logs:sns": "serverless logs -f snsSubscriber --stage local --tail",
+    "test": "python teste_api.py",
+    "health": "curl http://localhost:4566/_localstack/health",
+    "clean": "docker-compose down -v && rm -rf .serverless volume node_modules",
+    "full-setup": "npm run setup && npm run start && timeout 20 && npm run deploy"
+  },
+  "keywords": [
+    "serverless",
+    "aws",
+    "lambda",
+    "dynamodb",
+    "sns",
+    "localstack",
+    "api-rest",
+    "crud"
+  ],
+  "author": "Trabalho Universitário",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-localstack": "^1.3.1"
+  }
+}

@@ -1,0 +1,133 @@
+service: pecas-automotivas-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+  stage: ${opt:stage, 'local'}
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${sls:stage}
+    SNS_TOPIC_ARN: !Ref PecasAutomotivasTopic
+    LOCALSTACK_HOSTNAME: ${env:LOCALSTACK_HOSTNAME, 'localhost'}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt PecasTable.Arn
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource:
+            - !Ref PecasAutomotivasTopic
+
+plugins:
+  - serverless-localstack
+
+custom:
+  localstack:
+    stages:
+      - local
+    host: http://localhost
+    edgePort: 4566
+    autostart: false
+    # Endpoints unificados na porta 4566 (padrão LocalStack)
+    endpoints:
+      S3: http://localhost:4566
+      DynamoDB: http://localhost:4566
+      CloudFormation: http://localhost:4566
+      CloudWatch: http://localhost:4566
+      CloudWatchLogs: http://localhost:4566
+      Lambda: http://localhost:4566
+      SNS: http://localhost:4566
+      SQS: http://localhost:4566
+      ApiGateway: http://localhost:4566
+      IAM: http://localhost:4566
+      STS: http://localhost:4566
+    lambda:
+      mountCode: true
+      # Importante: usar local executor no LocalStack
+      executor: local
+    docker:
+      sudo: false
+
+functions:
+  createItem:
+    handler: handler.create_item
+    events:
+      - http:
+          path: items
+          method: post
+          cors: true
+    environment:
+      SNS_TOPIC_ARN: !Ref PecasAutomotivasTopic
+
+  listItems:
+    handler: handler.list_items
+    events:
+      - http:
+          path: items
+          method: get
+          cors: true
+
+  getItem:
+    handler: handler.get_item
+    events:
+      - http:
+          path: items/{id}
+          method: get
+          cors: true
+
+  updateItem:
+    handler: handler.update_item
+    events:
+      - http:
+          path: items/{id}
+          method: put
+          cors: true
+    environment:
+      SNS_TOPIC_ARN: !Ref PecasAutomotivasTopic
+
+  deleteItem:
+    handler: handler.delete_item
+    events:
+      - http:
+          path: items/{id}
+          method: delete
+          cors: true
+
+  snsSubscriber:
+    handler: handler.sns_subscriber
+    events:
+      - sns:
+          arn: !Ref PecasAutomotivasTopic
+          topicName: pecas-automotivas-topic
+
+resources:
+  Resources:
+    PecasTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    PecasAutomotivasTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: pecas-automotivas-topic
+        DisplayName: Tópico para notificações de peças automotivas

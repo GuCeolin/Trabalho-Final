@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack-pecas-automotivas
+    ports:
+      - "4566:4566"  # LocalStack Gateway (único necessário)
+    environment:
+      # Serviços AWS que serão simulados
+      - SERVICES=dynamodb,sns,lambda,apigateway,cloudformation,cloudwatch,logs,iam,sts,s3
+      # Modo debug para ver logs detalhados
+      - DEBUG=1
+      # Configuração Docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      # Região padrão AWS
+      - AWS_DEFAULT_REGION=us-east-1
+      # Credenciais fake para LocalStack
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      # Persistência de dados entre restarts
+      - PERSISTENCE=1
+      - DATA_DIR=/tmp/localstack/data
+      # Configurações extras
+      - LAMBDA_EXECUTOR=local
+      - LAMBDA_REMOTE_DOCKER=0
+    volumes:
+      # Volume para persistir dados
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      # Socket do Docker para o LocalStack criar recursos
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
